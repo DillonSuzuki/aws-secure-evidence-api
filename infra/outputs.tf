@@ -12,3 +12,8 @@ output "kms_key_arn" {
   description = "ARN of the customer-managed encryption key."
   value       = aws_kms_key.project.arn
 }
+
+output "finding_ingest_function_name" {
+  description = "Name of the finding-ingest Lambda function."
+  value       = aws_lambda_function.finding_ingest.function_name
+}

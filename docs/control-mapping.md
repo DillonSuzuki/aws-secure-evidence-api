@@ -7,7 +7,7 @@ API to relevant NIST SP 800-53 Revision 5 controls.
 
 The project runs in LocalStack for development and portfolio demonstration.
 These mappings show how technical mechanisms support control objectives; they
-do not represent a complete control implementation, FedRAMP compliance, or an
+do not represent complete control implementations, FedRAMP compliance, or an
 authorization to operate.
 
 ## Current Control Mapping
@@ -15,23 +15,36 @@ authorization to operate.
 | Control | Technical implementation | Verification evidence | Status |
 |---|---|---|---|
 | AC-3 – Access Enforcement | S3 public access is blocked, ACL-based ownership is disabled, and bucket ownership is enforced. | `get-public-access-block` and `get-bucket-ownership-controls` | Demonstrated locally |
-| CM-2 – Baseline Configuration | OpenTofu defines the KMS key, S3 bucket, DynamoDB table, encryption, versioning, and access settings. | `tofu validate` and a no-change `tofu plan` | Demonstrated locally |
-| CM-3 – Configuration Change Control | Infrastructure changes are developed on a Git feature branch and reviewed through an OpenTofu execution plan before application. | Git history and OpenTofu plan output | Partially demonstrated |
-| SA-10 – Developer Configuration Management | Application and infrastructure configuration are maintained in source control with provider-version locking. | Git history and `.terraform.lock.hcl` | Demonstrated locally |
+| AC-6 – Least Privilege | The Lambda execution role permits only `dynamodb:PutItem` on the findings table and log writes to its own log group. | `get-role-policy` | Configured locally |
+| AU-12 – Audit Record Generation | Lambda execution records include request IDs, execution duration, billed duration, and memory usage. Logs are retained for 14 days. | `describe-log-groups` and `logs tail` | Partially demonstrated |
+| CM-2 – Baseline Configuration | OpenTofu defines the KMS key, S3 bucket, DynamoDB table, Lambda, IAM role, encryption, versioning, and access settings. | `tofu validate` and a no-change `tofu plan` | Demonstrated locally |
+| CM-3 – Configuration Change Control | Changes are developed on Git feature branches, reviewed through OpenTofu plans, and merged through pull requests. | Git history and pull-request history | Demonstrated |
+| SA-10 – Developer Configuration Management | Application and infrastructure configuration are maintained in source control with provider-version locking. | Git history and `.terraform.lock.hcl` | Demonstrated |
 | SC-12 – Cryptographic Key Establishment and Management | A customer-managed KMS key and alias are defined through OpenTofu with annual automatic rotation. | `describe-key` and `get-key-rotation-status` | Demonstrated locally |
 | SC-13 – Cryptographic Protection | KMS cryptography protects evidence objects and finding metadata. | S3 and DynamoDB encryption inspection | Demonstrated locally |
 | SC-28 – Protection of Information at Rest | S3 and DynamoDB use the project KMS key for server-side encryption. | `get-bucket-encryption` and `describe-table` | Demonstrated locally |
+| SI-10 – Information Input Validation | The Lambda rejects invalid JSON, missing fields, empty fields, and unauthorized severity values before persistence. | Automated unit tests | Demonstrated |
+| SI-11 – Error Handling | Persistence failures produce a generic client response while detailed exceptions remain in controlled function logs. | Automated unit test for simulated persistence failure | Demonstrated |
 
 ## Additional Security Mechanisms
 
+- DynamoDB conditional writes prevent an existing finding ID from being overwritten.
 - S3 versioning preserves previous object versions.
 - S3 Bucket Keys reduce direct KMS request volume.
 - Customer-provided S3 encryption keys are blocked.
-- DynamoDB uses on-demand capacity to avoid unnecessary local capacity configuration.
+- Lambda configuration uses a supported Python runtime, a 10-second timeout,
+  and a dedicated execution role.
+- CloudWatch logs use a defined 14-day retention period.
+- DynamoDB uses on-demand capacity to avoid unnecessary capacity configuration.
 
 ## Limitations
 
 - LocalStack emulates AWS services but does not prove identical production AWS behavior.
-- LocalStack Hobby does not provide every production security capability.
-- Runtime IAM-policy enforcement and full audit logging are not demonstrated yet.
-- This project is NIST/FedRAMP-aligned for learning purposes and is not a FedRAMP-authorized system.
+- LocalStack Hobby does not enforce IAM policies at runtime, so the least-privilege
+  policy can be inspected but its denial behavior is not demonstrated.
+- CloudTrail and complete production audit logging are not demonstrated.
+- API authentication and authorization have not been implemented yet.
+- Lambda currently uses the runtime-provided Boto3 SDK; production dependency
+  packaging and vulnerability scanning will be addressed separately.
+- This project is NIST/FedRAMP-aligned for learning purposes and is not a
+  FedRAMP-authorized system.
