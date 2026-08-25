@@ -9,6 +9,7 @@ htmlcov/
 .terraform/
 *.tfstate
 *.tfstate.*
+tfplan*
 crash.log
 
 .env
