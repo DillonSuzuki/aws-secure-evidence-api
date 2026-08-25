@@ -8,13 +8,14 @@ provider "aws" {
   skip_metadata_api_check     = true
 
   endpoints {
-    dynamodb  = "http://127.0.0.1:4566"
-    iam       = "http://127.0.0.1:4566"
-    kms       = "http://127.0.0.1:4566"
-    lambda    = "http://127.0.0.1:4566"
-    logs      = "http://127.0.0.1:4566"
-    s3        = "http://127.0.0.1:4566"
-    s3control = "http://localstack.test:4566"
-    sts       = "http://127.0.0.1:4566"
+    apigateway = "http://127.0.0.1:4566"
+    dynamodb   = "http://127.0.0.1:4566"
+    iam        = "http://127.0.0.1:4566"
+    kms        = "http://127.0.0.1:4566"
+    lambda     = "http://127.0.0.1:4566"
+    logs       = "http://127.0.0.1:4566"
+    s3         = "http://127.0.0.1:4566"
+    s3control  = "http://localstack.test:4566"
+    sts        = "http://127.0.0.1:4566"
   }
 }

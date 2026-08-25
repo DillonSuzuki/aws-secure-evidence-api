@@ -17,3 +17,14 @@ output "finding_ingest_function_name" {
   description = "Name of the finding-ingest Lambda function."
   value       = aws_lambda_function.finding_ingest.function_name
 }
+
+output "findings_api_url" {
+  description = "LocalStack URL for the finding-intake API."
+  value = join("", [
+    "http://127.0.0.1:4566/_aws/execute-api/",
+    aws_api_gateway_rest_api.evidence.id,
+    "/",
+    aws_api_gateway_stage.local.stage_name,
+    "/findings",
+  ])
+}
