@@ -1,9 +1,16 @@
 import json
+import logging
+import os
 import uuid
 from datetime import UTC, datetime
 
+import boto3
+
 ALLOWED_SEVERITIES = {"low", "moderate", "high", "critical"}
 REQUIRED_FIELDS = {"title", "severity", "description"}
+
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.INFO)
 
 
 def _response(status_code: int, body: dict) -> dict:
@@ -12,6 +19,19 @@ def _response(status_code: int, body: dict) -> dict:
         "headers": {"Content-Type": "application/json"},
         "body": json.dumps(body),
     }
+
+
+def _persist_finding(finding: dict[str, str]) -> None:
+    table_name = os.environ.get("FINDINGS_TABLE_NAME")
+
+    if not table_name:
+        raise RuntimeError("FINDINGS_TABLE_NAME is not configured.")
+
+    table = boto3.resource("dynamodb").Table(table_name)
+    table.put_item(
+        Item=finding,
+        ConditionExpression="attribute_not_exists(findingId)",
+    )
 
 
 def lambda_handler(event: dict, context: object) -> dict:
@@ -64,5 +84,14 @@ def lambda_handler(event: dict, context: object) -> dict:
         "createdAt": datetime.now(UTC).isoformat(),
         "status": "open",
     }
+
+    try:
+        _persist_finding(finding)
+    except Exception:
+        LOGGER.exception(
+            "Unable to persist finding.",
+            extra={"findingId": finding["findingId"]},
+        )
+        return _response(500, {"message": "Finding could not be stored."})
 
     return _response(201, finding)
