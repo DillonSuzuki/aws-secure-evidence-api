@@ -4,8 +4,22 @@ locals {
 
 data "archive_file" "finding_ingest" {
   type        = "zip"
-  source_dir  = "${path.module}/../app"
   output_path = "${path.module}/finding-ingest.zip"
+
+  source {
+    content  = file("${path.module}/../app/__init__.py")
+    filename = "app/__init__.py"
+  }
+
+  source {
+    content  = file("${path.module}/../app/authentication.py")
+    filename = "app/authentication.py"
+  }
+
+  source {
+    content  = file("${path.module}/../app/handler.py")
+    filename = "app/handler.py"
+  }
 }
 
 data "aws_iam_policy_document" "lambda_assume_role" {
@@ -36,6 +50,32 @@ data "aws_iam_policy_document" "finding_ingest" {
     resources = [
       aws_dynamodb_table.findings.arn,
     ]
+  }
+
+  statement {
+    sid     = "ReadAuthorizerSecret"
+    effect  = "Allow"
+    actions = ["secretsmanager:GetSecretValue"]
+
+    resources = [
+      aws_secretsmanager_secret.api_authorizer.arn,
+    ]
+  }
+
+  statement {
+    sid     = "DecryptAuthorizerSecret"
+    effect  = "Allow"
+    actions = ["kms:Decrypt"]
+
+    resources = [
+      aws_kms_key.project.arn,
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["secretsmanager.${var.aws_region}.amazonaws.com"]
+    }
   }
 
   statement {
@@ -72,7 +112,7 @@ resource "aws_lambda_function" "finding_ingest" {
   filename         = data.archive_file.finding_ingest.output_path
   source_code_hash = data.archive_file.finding_ingest.output_base64sha256
 
-  handler       = "handler.lambda_handler"
+  handler       = "app.handler.lambda_handler"
   runtime       = "python3.14"
   architectures = ["x86_64"]
   memory_size   = 256
@@ -80,7 +120,8 @@ resource "aws_lambda_function" "finding_ingest" {
 
   environment {
     variables = {
-      FINDINGS_TABLE_NAME = aws_dynamodb_table.findings.name
+      FINDINGS_TABLE_NAME  = aws_dynamodb_table.findings.name
+      AUTHORIZER_SECRET_ID = aws_secretsmanager_secret.api_authorizer.name
     }
   }
 

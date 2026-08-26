@@ -71,7 +71,8 @@ resource "aws_api_gateway_method" "create_finding" {
   rest_api_id   = aws_api_gateway_rest_api.evidence.id
   resource_id   = aws_api_gateway_resource.findings.id
   http_method   = "POST"
-  authorization = "NONE"
+  authorization = "CUSTOM"
+  authorizer_id = aws_api_gateway_authorizer.finding_submitter.id
 
   api_key_required     = false
   request_validator_id = aws_api_gateway_request_validator.body.id
@@ -110,6 +111,7 @@ resource "aws_api_gateway_deployment" "evidence" {
       aws_api_gateway_integration.create_finding.id,
       aws_api_gateway_model.finding_request.schema,
       aws_api_gateway_request_validator.body.id,
+      aws_api_gateway_authorizer.finding_submitter.id,
     ]))
   }
 
