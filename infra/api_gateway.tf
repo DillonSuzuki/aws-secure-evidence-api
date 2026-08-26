@@ -126,6 +126,24 @@ resource "aws_api_gateway_stage" "local" {
   rest_api_id   = aws_api_gateway_rest_api.evidence.id
   deployment_id = aws_api_gateway_deployment.evidence.id
   stage_name    = "local"
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.api_access.arn
 
+    format = jsonencode({
+      requestId       = "$context.requestId"
+      requestTime     = "$context.requestTime"
+      sourceIp        = "$context.identity.sourceIp"
+      userAgent       = "$context.identity.userAgent"
+      httpMethod      = "$context.httpMethod"
+      resourcePath    = "$context.resourcePath"
+      status          = "$context.status"
+      responseLength  = "$context.responseLength"
+      responseLatency = "$context.responseLatency"
+    })
+  }
+
+  depends_on = [
+    aws_api_gateway_account.logging,
+  ]
   tags = local.common_tags
 }
