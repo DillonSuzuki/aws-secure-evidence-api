@@ -28,3 +28,13 @@ output "findings_api_url" {
     "/findings",
   ])
 }
+
+output "finding_authorizer_function_name" {
+  description = "Name of the bearer-token authorizer Lambda."
+  value       = aws_lambda_function.finding_authorizer.function_name
+}
+
+output "finding_authorizer_secret_name" {
+  description = "Name of the secret containing the local API bearer token."
+  value       = aws_secretsmanager_secret.api_authorizer.name
+}

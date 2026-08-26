@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 
 import boto3
 
+from app import authentication
+
 ALLOWED_SEVERITIES = {"low", "moderate", "high", "critical"}
 REQUIRED_FIELDS = {"title", "severity", "description"}
 
@@ -36,6 +38,9 @@ def _persist_finding(finding: dict[str, str]) -> None:
 
 def lambda_handler(event: dict, context: object) -> dict:
     del context
+
+    if not authentication.is_authorized(event):
+        return _response(403, {"message": "Forbidden."})
 
     raw_body = event.get("body")
 

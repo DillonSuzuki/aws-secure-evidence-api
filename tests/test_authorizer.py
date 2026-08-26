@@ -1,4 +1,4 @@
-from app import authorizer
+from app import authentication, authorizer
 
 METHOD_ARN = "arn:aws:execute-api:us-east-1:000000000000:example/local/POST/findings"
 
@@ -24,7 +24,7 @@ def policy_effect(response: dict) -> str:
 
 def test_matching_token_is_allowed(monkeypatch) -> None:
     monkeypatch.setattr(
-        authorizer,
+        authentication,
         "_get_expected_token",
         lambda: "expected-token",
     )
@@ -37,7 +37,7 @@ def test_matching_token_is_allowed(monkeypatch) -> None:
 
 def test_incorrect_token_is_denied(monkeypatch) -> None:
     monkeypatch.setattr(
-        authorizer,
+        authentication,
         "_get_expected_token",
         lambda: "expected-token",
     )
@@ -45,9 +45,10 @@ def test_incorrect_token_is_denied(monkeypatch) -> None:
     response = invoke("incorrect-token")
 
     assert policy_effect(response) == "Deny"
+    assert response["context"]["authenticated"] is False
 
 
-def test_missing_token_is_denied(monkeypatch) -> None:
+def test_missing_token_is_denied() -> None:
     response = invoke(None)
 
     assert policy_effect(response) == "Deny"
@@ -55,7 +56,7 @@ def test_missing_token_is_denied(monkeypatch) -> None:
 
 def test_malformed_authorization_header_is_denied(monkeypatch) -> None:
     monkeypatch.setattr(
-        authorizer,
+        authentication,
         "_get_expected_token",
         lambda: "expected-token",
     )
@@ -76,7 +77,7 @@ def test_secret_retrieval_failure_is_denied(monkeypatch) -> None:
         raise RuntimeError("Simulated secret failure")
 
     monkeypatch.setattr(
-        authorizer,
+        authentication,
         "_get_expected_token",
         raise_secret_error,
     )
